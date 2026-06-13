@@ -89,7 +89,7 @@ docker run --rm -v $(pwd)/data:/data sory-millimono/omicsflow:1.0.0 \
 
 ```bash
 # Clone the repository
-git clone https://github.com/sory-millimono/OmicsFlow.git
+git clone https://github.com/Millimono/OmicsFlow.git
 cd OmicsFlow
 
 # Run RNA-seq pipeline with test data
