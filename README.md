@@ -25,33 +25,40 @@ All workflows are fully containerized via Docker and can run locally, on HPC clu
 
 ## 📦 What you need before starting
 
-Before running OmicsFlow, you need to prepare the following files:
+OmicsFlow is flexible — you can use the full pipeline or individual tools depending on your needs.
 
-### 1. Your FASTQ files (sequencing data)
-Raw sequencing files from your sequencer or a public database (NCBI SRA, ENA).
-```
-sample1_R1.fastq.gz   # Read 1
-sample1_R2.fastq.gz   # Read 2 (paired-end)
-```
+### The only real requirement: your data
 
-### 2. A reference genome (FASTA)
-For human data — download GRCh38 chromosome 22 for testing, or the full genome for production:
+| Use case | What you need |
+|---|---|
+| Quality control only | FASTQ files |
+| Trimming only | FASTQ files |
+| Alignment (STAR) | FASTQ files + reference genome + GTF + STAR index |
+| Quantification (Salmon) | FASTQ files + Salmon index |
+| Statistics (Samtools) | An existing BAM file |
+| Differential expression | Salmon counts + sample metadata |
+| Python/R analysis | Your own data + scripts |
+
+> **You do not need to prepare everything upfront.** Start with what you have and add steps as needed.
+
+---
+
+### Reference genome & annotation (only if using STAR alignment)
+
+If you plan to use STAR for alignment, you need a reference genome and its annotation.
+
+**If you already have a STAR index** on your server or HPC — just point to it with `--genomeDir`. No need to rebuild it.
+
+**If you need to build one** (one-time operation, ~45 min for full human genome):
 ```bash
-# Test (chr22 only, ~11 MB)
-wget https://ftp.ensembl.org/pub/release-109/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.22.fa.gz
-
-# Full genome (~3 GB)
+# Download reference genome (human GRCh38)
 wget https://ftp.ensembl.org/pub/release-109/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
-```
 
-### 3. A gene annotation file (GTF)
-```bash
+# Download gene annotation
 wget https://ftp.ensembl.org/pub/release-109/gtf/homo_sapiens/Homo_sapiens.GRCh38.109.gtf.gz
 gunzip Homo_sapiens.GRCh38.109.gtf.gz
-```
 
-### 4. A STAR genome index (built once, reused forever)
-```bash
+# Build STAR index using OmicsFlow Docker
 docker run --rm -v $(pwd):/data smill/omicsflow:1.0.0 \
   bash -c "mkdir -p /data/star_index && STAR --runMode genomeGenerate \
   --genomeDir /data/star_index \
@@ -59,22 +66,12 @@ docker run --rm -v $(pwd):/data smill/omicsflow:1.0.0 \
   --sjdbGTFfile /data/genome/GRCh38.gtf \
   --runThreadN 8"
 ```
-> ⚠️ The index only needs to be built **once** per genome. It can then be reused for all your samples.
+> ⚠️ Build the index **once**, store it, reuse it forever for all your experiments. Any STAR-compatible index works — it does not need to be generated with this Docker image.
 
-### 5. Your samplesheet (CSV)
-List all your samples in a CSV file:
-```csv
-sample,fastq_1,fastq_2,strandedness
-ctrl_rep1,/data/ctrl_rep1_R1.fastq.gz,/data/ctrl_rep1_R2.fastq.gz,reverse
-ctrl_rep2,/data/ctrl_rep2_R1.fastq.gz,/data/ctrl_rep2_R2.fastq.gz,reverse
-treat_rep1,/data/treat_rep1_R1.fastq.gz,/data/treat_rep1_R2.fastq.gz,reverse
-treat_rep2,/data/treat_rep2_R1.fastq.gz,/data/treat_rep2_R2.fastq.gz,reverse
-```
-
-> **Strandedness:** use `reverse` for most Illumina kits (TruSeq), `forward` for some stranded protocols, `unstranded` if unsure.
+---
 
 ### What you do NOT need to install
-Thanks to the Docker image, everything else is already included:
+Everything is already inside the Docker image:
 
 | Tool | Without OmicsFlow | With OmicsFlow |
 |---|---|---|
@@ -85,6 +82,8 @@ Thanks to the Docker image, everything else is already included:
 | Samtools | Compile from source | ✅ Included |
 | DESeq2 | R + Bioconductor setup | ✅ Included |
 | MultiQC | pip install | ✅ Included |
+| BioPython | pip install | ✅ Included |
+| numpy / pandas / matplotlib | pip install | ✅ Included |
 
 ---
 
