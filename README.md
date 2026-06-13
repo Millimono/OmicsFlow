@@ -13,11 +13,11 @@
 
 **OmicsFlow** is a production-ready bioinformatics pipeline built with [Nextflow](https://www.nextflow.io/) and Docker, designed for reproducible multi-omics data analysis. It supports three major sequencing technologies and workflows:
 
-| Workflow | Technology | Key tools |
-|---|---|---|
-| `rnaseq.nf` | Illumina short reads | FastQC · STAR · Salmon · DESeq2 |
-| `longread.nf` | Oxford Nanopore (ONT) | NanoStat · Minimap2 · Medaka |
-| `metagenomics.nf` | Illumina / ONT | Bowtie2 · Kraken2 · Bracken |
+| Workflow | Technology | Key tools | Status |
+|---|---|---|---|
+| `rnaseq.nf` | Illumina short reads | FastQC · STAR · Salmon · DESeq2 | ✅ Stable |
+| `longread.nf` | Oxford Nanopore (ONT) | NanoStat · Minimap2 · Samtools | 🚧 In development |
+| `metagenomics.nf` | Illumina / ONT | Kraken2 · Bracken | 🚧 In development |
 
 All workflows are fully containerized via Docker and can run locally, on HPC clusters (SLURM/PBS), or in the cloud (AWS Batch).
 
@@ -37,7 +37,7 @@ OmicsFlow is flexible — you can use the full pipeline or individual tools depe
 | Quantification (Salmon) | FASTQ files + Salmon index |
 | Statistics (Samtools) | An existing BAM file |
 | Differential expression | Salmon counts + sample metadata |
-| Python/R analysis | Your own data + scripts |
+| Python / R analysis | Your own data + scripts |
 
 > **You do not need to prepare everything upfront.** Start with what you have and add steps as needed.
 
@@ -47,7 +47,7 @@ OmicsFlow is flexible — you can use the full pipeline or individual tools depe
 
 If you plan to use STAR for alignment, you need a reference genome and its annotation.
 
-**If you already have a STAR index** on your server or HPC — just point to it with `--genomeDir`. No need to rebuild it.
+**If you already have a STAR index** on your server or HPC — just point to it with `--genomeDir`. No need to rebuild it. Any STAR-compatible index works, regardless of how it was generated.
 
 **If you need to build one** (one-time operation, ~45 min for full human genome):
 ```bash
@@ -66,7 +66,7 @@ docker run --rm -v $(pwd):/data smill/omicsflow:1.0.0 \
   --sjdbGTFfile /data/genome/GRCh38.gtf \
   --runThreadN 8"
 ```
-> ⚠️ Build the index **once**, store it, reuse it forever for all your experiments. Any STAR-compatible index works — it does not need to be generated with this Docker image.
+> ⚠️ Build the index **once**, store it, reuse it forever for all your experiments.
 
 ---
 
@@ -84,10 +84,13 @@ Everything is already inside the Docker image:
 | MultiQC | pip install | ✅ Included |
 | BioPython | pip install | ✅ Included |
 | numpy / pandas / matplotlib | pip install | ✅ Included |
+| NanoStat / NanoPlot | pip install | ✅ Included |
+| Kraken2 | Manual install | ✅ Included |
+| Minimap2 | Manual install | ✅ Included |
 
 ---
 
-
+## 🐳 Run with Docker only (no Nextflow required)
 
 The easiest way to use OmicsFlow — just Docker, no installation needed.
 
@@ -113,9 +116,7 @@ docker run --rm -v $(pwd)/data:/data smill/omicsflow:1.0.0 \
   --readFilesCommand zcat \
   --outSAMtype BAM SortedByCoordinate \
   --outFileNamePrefix /data/aligned/sample. \
-  --runThreadN 4 \
-  --outFilterScoreMinOverLread 0.3 \
-  --outFilterMatchNminOverLread 0.3"
+  --runThreadN 4"
 
 # Step 4 — Quantification (Salmon)
 docker run --rm -v $(pwd)/data:/data smill/omicsflow:1.0.0 \
@@ -135,6 +136,12 @@ docker run --rm -v $(pwd)/data:/data smill/omicsflow:1.0.0 \
 # Step 6 — Aggregated QC report (MultiQC)
 docker run --rm -v $(pwd)/data:/data smill/omicsflow:1.0.0 \
   bash -c "multiqc /data --outdir /data/multiqc"
+
+# Interactive R session (DESeq2, ggplot2...)
+docker run --rm -it -v $(pwd)/data:/data smill/omicsflow:1.0.0 R
+
+# Interactive Python session (biopython, pandas, matplotlib...)
+docker run --rm -it -v $(pwd)/data:/data smill/omicsflow:1.0.0 python3
 ```
 
 > **Windows users:** replace `$(pwd)` with `%cd%` in CMD, or use the full path.
@@ -162,18 +169,6 @@ nextflow run workflows/rnaseq.nf \
   --genome GRCh38 \
   --outdir results/ \
   -profile docker
-
-# Run long-read pipeline
-nextflow run workflows/longread.nf \
-  --input data/test/nanopore/ \
-  --reference data/test/reference.fa \
-  -profile docker
-
-# Run metagenomic pipeline
-nextflow run workflows/metagenomics.nf \
-  --input data/test/samplesheet.csv \
-  --db data/test/kraken2_db/ \
-  -profile docker
 ```
 
 ### Input samplesheet format (CSV)
@@ -186,6 +181,8 @@ treat_rep1,/path/to/treat_rep1_R1.fastq.gz,/path/to/treat_rep1_R2.fastq.gz,rever
 treat_rep2,/path/to/treat_rep2_R1.fastq.gz,/path/to/treat_rep2_R2.fastq.gz,reverse
 ```
 
+> **Strandedness:** use `reverse` for most Illumina TruSeq kits, `forward` for some stranded protocols, `unstranded` if unsure.
+
 ---
 
 ## 🗂️ Project Structure
@@ -193,15 +190,14 @@ treat_rep2,/path/to/treat_rep2_R1.fastq.gz,/path/to/treat_rep2_R2.fastq.gz,rever
 ```
 OmicsFlow/
 ├── workflows/
-│   ├── rnaseq.nf           # RNA-seq Illumina pipeline
-│   ├── longread.nf         # Nanopore long-read pipeline
-│   └── metagenomics.nf     # Metagenomic pipeline
+│   ├── rnaseq.nf           # ✅ RNA-seq Illumina pipeline (stable)
+│   ├── longread.nf         # 🚧 Nanopore long-read pipeline (in development)
+│   └── metagenomics.nf     # 🚧 Metagenomic pipeline (in development)
 │
 ├── modules/
 │   ├── qc/                 # FastQC, MultiQC, NanoStat
-│   ├── alignment/          # STAR, Bowtie2, Minimap2
-│   ├── variant_calling/    # GATK, Medaka, Samtools
-│   └── quantification/     # Salmon, featureCounts, DESeq2
+│   ├── alignment/          # STAR, Minimap2, Samtools
+│   └── quantification/     # Salmon, DESeq2
 │
 ├── analysis/
 │   ├── deseq2.R            # Differential expression (DESeq2 / edgeR)
@@ -216,7 +212,7 @@ OmicsFlow/
 │       ├── samplesheet.csv
 │       └── reads/          # nf-core GSE110004 subset (Illumina)
 │
-├── docs/                   # MkDocs documentation
+├── docs/                   # Documentation (GitHub Pages)
 ├── .github/
 │   └── workflows/
 │       └── ci.yml          # GitHub Actions CI/CD
@@ -227,7 +223,7 @@ OmicsFlow/
 
 ## 📊 Workflows in Detail
 
-### 1. RNA-seq Pipeline (`rnaseq.nf`)
+### 1. RNA-seq Pipeline (`rnaseq.nf`) ✅ Stable
 
 Designed for bulk RNA-seq analysis from raw FASTQ to differential expression.
 
@@ -260,9 +256,11 @@ Input FASTQ
 - `results/deseq2/` — DE results, volcano plots, heatmaps
 - `results/report.html` — Full automated HTML report
 
-### 2. Long-read Pipeline (`longread.nf`)
+---
 
-For Nanopore sequencing data (DNA/RNA).
+### 2. Long-read Pipeline (`longread.nf`) 🚧 In development
+
+For Nanopore sequencing data. Coming soon — tools already available in the Docker image.
 
 ```
 Input FASTQ (ONT)
@@ -277,31 +275,38 @@ Input FASTQ (ONT)
 [Samtools] ──> Sorted + indexed BAM
     │
     ▼
-[Medaka] ──> Variant calling + consensus
-    │
-    ▼
 [MultiQC] ──> Aggregated report
 ```
 
-### 3. Metagenomic Pipeline (`metagenomics.nf`)
+> In the meantime, you can use these tools individually via Docker — see the Docker section above.
 
-Taxonomic classification and abundance profiling.
+---
+
+### 3. Metagenomic Pipeline (`metagenomics.nf`) 🚧 In development
+
+Taxonomic classification and abundance profiling. Coming soon — Kraken2 already available in the Docker image.
 
 ```
 Input FASTQ
     │
     ▼
-[FastQC + Trimmomatic] ──> Clean reads
+[FastQC + Trim Galore] ──> Clean reads
     │
     ▼
 [Kraken2] ──> Taxonomic classification
     │
     ▼
 [Bracken] ──> Abundance re-estimation
-    │
-    ▼
-[Krona] ──> Interactive taxonomy visualization
 ```
+
+> In the meantime, you can run Kraken2 directly:
+> ```bash
+> docker run --rm -v $(pwd):/data smill/omicsflow:1.0.0 \
+>   bash -c "kraken2 --db /data/kraken2_db --paired \
+>   /data/R1.fastq.gz /data/R2.fastq.gz \
+>   --output /data/kraken2_output.txt \
+>   --report /data/kraken2_report.txt"
+> ```
 
 ---
 
@@ -312,15 +317,15 @@ Input FASTQ
 | **Pipeline orchestration** | Nextflow DSL2 | ≥ 22.10 |
 | **Containerization** | Docker · Singularity | 28.x |
 | **QC** | FastQC · MultiQC · NanoStat · NanoPlot | 0.12.1 · 1.35 · 1.6.0 |
-| **Alignment** | STAR · Minimap2 · Bowtie2 | 2.7.11b · 2.31 |
-| **Quantification** | Salmon · featureCounts | 1.12.0 |
+| **Alignment** | STAR · Minimap2 | 2.7.11b · 2.31 |
+| **Quantification** | Salmon | 1.12.0 |
 | **Variant calling** | Samtools · BCFtools | 1.23.1 |
-| **Metagenomics** | Kraken2 · Bracken · Krona | 2.1.3 |
+| **Metagenomics** | Kraken2 | 2.1.3 |
 | **Statistical analysis** | DESeq2 · edgeR · R | R 4.5.2 |
 | **Visualization** | ggplot2 · matplotlib · seaborn | — |
 | **Languages** | Python · R · Bash · C · C++ | Python 3.x |
 | **CI/CD** | GitHub Actions | — |
-| **Documentation** | MkDocs · GitHub Pages | — |
+| **Documentation** | GitHub Pages | — |
 
 ---
 
@@ -333,11 +338,6 @@ Test data used during development (publicly available):
 | GSE110004 / SRR6357070 (subset) | nf-core test datasets | ~4 MB | RNA-seq test |
 | GRCh38 chr22 | Ensembl release 109 | ~11 MB | Reference genome |
 | GRCh38 chr22 GTF | Ensembl release 109 | ~52 MB | Gene annotation |
-
-```bash
-# Download test data (automated)
-bash scripts/download_test_data.sh
-```
 
 ---
 
@@ -368,11 +368,6 @@ profiles {
 }
 ```
 
-Run with a specific profile:
-```bash
-nextflow run workflows/rnaseq.nf -profile cluster --input samplesheet.csv
-```
-
 ---
 
 ## 📈 Results & Outputs
@@ -398,7 +393,7 @@ results/
 │   ├── heatmap_top50.pdf   # Top 50 DE genes heatmap
 │   └── pca_plot.pdf        # PCA plot
 └── pipeline_info/
-    ├── execution_report.html  # Nextflow execution report
+    ├── execution_report.html
     └── execution_timeline.html
 ```
 
@@ -418,12 +413,7 @@ This pipeline was developed in conjunction with research in AI-based medical ima
 
 ## 📚 Documentation
 
-Full documentation: **[millimono.github.io/OmicsFlow](https://millimono.github.io/OmicsFlow)**
-
-- [Installation guide](docs/installation.md)
-- [Usage & parameters](docs/usage.md)
-- [Output description](docs/outputs.md)
-- [Adding new modules](docs/contributing.md)
+Full documentation available at: **[millimono.github.io/OmicsFlow](https://millimono.github.io/OmicsFlow)**
 
 ---
 
@@ -450,8 +440,8 @@ GitHub. https://github.com/Millimono/OmicsFlow
 
 ## 👤 Author
 
-**Sory Millimono**  
-PhD Candidate in AI · Bioinformatician  
+**Sory Millimono**
+PhD Candidate in AI · Bioinformatician
 Université de Montréal & Mohammed V University – ENSIAS
 
 - 📧 millimono64.sm@gmail.com
