@@ -1,0 +1,24 @@
+# Données de test volumineuses
+data/test/genome/
+data/test/star_index/
+data/test/aligned/
+data/test/aligned2/
+data/test/*.fq.gz
+data/test/*.fastq.gz
+data/test/*_fastqc.zip
+
+# Fichiers temporaires
+nextflow (1).config
+*.log
+work/
+.nextflow/
+results/
+
+# OS
+.DS_Store
+Thumbs.dbOmicsFlow_README.pdf 
+data/test/ctrl_rep1_R1_fastqc.html 
+data/test/ctrl_rep1_R2_fastqc.html 
+data/test/*.json 
+data/test/*.txt 
+OmicsFlow_README.pdf 

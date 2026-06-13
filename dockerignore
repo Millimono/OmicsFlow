@@ -1,0 +1,33 @@
+# ── Résultats et données ────────────────────────────────────────────────────
+results/
+results_test/
+results_ci/
+data/test/reads/
+data/test/nanopore/
+data/test/reference/
+*.bam
+*.bai
+*.fastq
+*.fastq.gz
+*.fq.gz
+
+# ── Git et CI ────────────────────────────────────────────────────────────────
+.git/
+.github/
+.gitignore
+
+# ── Documentation ───────────────────────────────────────────────────────────
+docs/
+*.md
+*.pdf
+
+# ── Fichiers temporaires ─────────────────────────────────────────────────────
+.nextflow/
+.nextflow.log*
+work/
+*.log
+*.tmp
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

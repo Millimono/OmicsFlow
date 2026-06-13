@@ -1,0 +1,402 @@
+# 🧬 OmicsFlow
+
+> **A modular, containerized NGS pipeline for RNA-seq, long-read, and metagenomic analysis**
+
+[![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A522.10-brightgreen)](https://www.nextflow.io/)
+[![Docker](https://img.shields.io/badge/docker-ready-blue)](https://hub.docker.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://github.com/sory-millimono/OmicsFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/sory-millimono/OmicsFlow/actions)
+
+---
+
+## 📋 Overview
+
+**OmicsFlow** is a production-ready bioinformatics pipeline built with [Nextflow](https://www.nextflow.io/) and Docker, designed for reproducible multi-omics data analysis. It supports three major sequencing technologies and workflows:
+
+| Workflow | Technology | Key tools |
+|---|---|---|
+| `rnaseq.nf` | Illumina short reads | FastQC · STAR · Salmon · DESeq2 |
+| `longread.nf` | Oxford Nanopore (ONT) | NanoStat · Minimap2 · Medaka |
+| `metagenomics.nf` | Illumina / ONT | Bowtie2 · Kraken2 · Bracken |
+
+All workflows are fully containerized via Docker and can run locally, on HPC clusters (SLURM/PBS), or in the cloud (AWS Batch).
+
+---
+
+## 🐳 Run with Docker only (no Nextflow required)
+
+The easiest way to use OmicsFlow — just Docker, no installation needed.
+
+```bash
+# Pull the image
+docker pull sory-millimono/omicsflow:1.0.0
+
+# Step 1 — Quality control (FastQC)
+docker run --rm -v $(pwd)/data:/data sory-millimono/omicsflow:1.0.0 \
+  bash -c "fastqc /data/sample_R1.fastq.gz /data/sample_R2.fastq.gz --outdir /data/qc"
+
+# Step 2 — Adapter trimming (Trim Galore)
+docker run --rm -v $(pwd)/data:/data sory-millimono/omicsflow:1.0.0 \
+  bash -c "trim_galore --paired --cores 4 \
+  /data/sample_R1.fastq.gz /data/sample_R2.fastq.gz \
+  -o /data/trimmed"
+
+# Step 3 — Alignment (STAR)
+docker run --rm -v $(pwd)/data:/data sory-millimono/omicsflow:1.0.0 \
+  bash -c "STAR --runMode alignReads \
+  --genomeDir /data/star_index \
+  --readFilesIn /data/trimmed/sample_R1_val_1.fq.gz /data/trimmed/sample_R2_val_2.fq.gz \
+  --readFilesCommand zcat \
+  --outSAMtype BAM SortedByCoordinate \
+  --outFileNamePrefix /data/aligned/sample. \
+  --runThreadN 4 \
+  --outFilterScoreMinOverLread 0.3 \
+  --outFilterMatchNminOverLread 0.3"
+
+# Step 4 — Quantification (Salmon)
+docker run --rm -v $(pwd)/data:/data sory-millimono/omicsflow:1.0.0 \
+  bash -c "salmon quant \
+  --index /data/salmon_index \
+  --libType A \
+  -1 /data/trimmed/sample_R1_val_1.fq.gz \
+  -2 /data/trimmed/sample_R2_val_2.fq.gz \
+  --output /data/counts/sample \
+  --threads 4 \
+  --validateMappings"
+
+# Step 5 — BAM statistics (Samtools)
+docker run --rm -v $(pwd)/data:/data sory-millimono/omicsflow:1.0.0 \
+  bash -c "samtools flagstat /data/aligned/sample.Aligned.sortedByCoord.out.bam"
+
+# Step 6 — Aggregated QC report (MultiQC)
+docker run --rm -v $(pwd)/data:/data sory-millimono/omicsflow:1.0.0 \
+  bash -c "multiqc /data --outdir /data/multiqc"
+```
+
+> **Windows users:** replace `$(pwd)` with `%cd%` in CMD, or use the full path.
+
+---
+
+## 🚀 Run with Nextflow (recommended for production)
+
+### Prerequisites
+
+- [Nextflow](https://www.nextflow.io/docs/latest/install.html) ≥ 22.10
+- [Docker](https://docs.docker.com/get-docker/) or [Singularity](https://sylabs.io/singularity/)
+- Java 17+
+
+### Run in one command
+
+```bash
+# Clone the repository
+git clone https://github.com/sory-millimono/OmicsFlow.git
+cd OmicsFlow
+
+# Run RNA-seq pipeline with test data
+nextflow run workflows/rnaseq.nf \
+  --input data/test/samplesheet.csv \
+  --genome GRCh38 \
+  --outdir results/ \
+  -profile docker
+
+# Run long-read pipeline
+nextflow run workflows/longread.nf \
+  --input data/test/nanopore/ \
+  --reference data/test/reference.fa \
+  -profile docker
+
+# Run metagenomic pipeline
+nextflow run workflows/metagenomics.nf \
+  --input data/test/samplesheet.csv \
+  --db data/test/kraken2_db/ \
+  -profile docker
+```
+
+### Input samplesheet format (CSV)
+
+```csv
+sample,fastq_1,fastq_2,strandedness
+ctrl_rep1,/path/to/ctrl_rep1_R1.fastq.gz,/path/to/ctrl_rep1_R2.fastq.gz,reverse
+ctrl_rep2,/path/to/ctrl_rep2_R1.fastq.gz,/path/to/ctrl_rep2_R2.fastq.gz,reverse
+treat_rep1,/path/to/treat_rep1_R1.fastq.gz,/path/to/treat_rep1_R2.fastq.gz,reverse
+treat_rep2,/path/to/treat_rep2_R1.fastq.gz,/path/to/treat_rep2_R2.fastq.gz,reverse
+```
+
+---
+
+## 🗂️ Project Structure
+
+```
+OmicsFlow/
+├── workflows/
+│   ├── rnaseq.nf           # RNA-seq Illumina pipeline
+│   ├── longread.nf         # Nanopore long-read pipeline
+│   └── metagenomics.nf     # Metagenomic pipeline
+│
+├── modules/
+│   ├── qc/                 # FastQC, MultiQC, NanoStat
+│   ├── alignment/          # STAR, Bowtie2, Minimap2
+│   ├── variant_calling/    # GATK, Medaka, Samtools
+│   └── quantification/     # Salmon, featureCounts, DESeq2
+│
+├── analysis/
+│   ├── deseq2.R            # Differential expression (DESeq2 / edgeR)
+│   ├── plots.py            # Heatmaps, volcano plots, PCA
+│   └── report.Rmd          # Automated HTML report template
+│
+├── containers/
+│   └── Dockerfile          # All tools in one reproducible image
+│
+├── data/
+│   └── test/               # Public mini-datasets for testing
+│       ├── samplesheet.csv
+│       └── reads/          # nf-core GSE110004 subset (Illumina)
+│
+├── docs/                   # MkDocs documentation
+├── .github/
+│   └── workflows/
+│       └── ci.yml          # GitHub Actions CI/CD
+└── nextflow.config         # Profiles: local, cluster, cloud
+```
+
+---
+
+## 📊 Workflows in Detail
+
+### 1. RNA-seq Pipeline (`rnaseq.nf`)
+
+Designed for bulk RNA-seq analysis from raw FASTQ to differential expression.
+
+```
+Input FASTQ
+    │
+    ▼
+[FastQC] ──────────────────────────> QC report
+    │
+    ▼
+[Trim Galore] ──> Trimmed reads
+    │
+    ▼
+[STAR] ──> Aligned BAM + splice junctions
+    │
+    ▼
+[Salmon] ──> Gene/transcript counts
+    │
+    ▼
+[DESeq2 / edgeR] ──> Differential expression
+    │
+    ▼
+[MultiQC] ──> Aggregated QC report (HTML)
+```
+
+**Output files:**
+- `results/qc/` — FastQC + MultiQC reports
+- `results/aligned/` — BAM files + index
+- `results/counts/` — Salmon quantification
+- `results/deseq2/` — DE results, volcano plots, heatmaps
+- `results/report.html` — Full automated HTML report
+
+### 2. Long-read Pipeline (`longread.nf`)
+
+For Nanopore sequencing data (DNA/RNA).
+
+```
+Input FASTQ (ONT)
+    │
+    ▼
+[NanoStat / NanoPlot] ──> Read quality stats
+    │
+    ▼
+[Minimap2] ──> Aligned BAM
+    │
+    ▼
+[Samtools] ──> Sorted + indexed BAM
+    │
+    ▼
+[Medaka] ──> Variant calling + consensus
+    │
+    ▼
+[MultiQC] ──> Aggregated report
+```
+
+### 3. Metagenomic Pipeline (`metagenomics.nf`)
+
+Taxonomic classification and abundance profiling.
+
+```
+Input FASTQ
+    │
+    ▼
+[FastQC + Trimmomatic] ──> Clean reads
+    │
+    ▼
+[Kraken2] ──> Taxonomic classification
+    │
+    ▼
+[Bracken] ──> Abundance re-estimation
+    │
+    ▼
+[Krona] ──> Interactive taxonomy visualization
+```
+
+---
+
+## 🛠️ Technical Stack
+
+| Category | Tools | Versions |
+|---|---|---|
+| **Pipeline orchestration** | Nextflow DSL2 | ≥ 22.10 |
+| **Containerization** | Docker · Singularity | 28.x |
+| **QC** | FastQC · MultiQC · NanoStat · NanoPlot | 0.12.1 · 1.35 · 1.6.0 |
+| **Alignment** | STAR · Minimap2 · Bowtie2 | 2.7.11b · 2.31 |
+| **Quantification** | Salmon · featureCounts | 1.12.0 |
+| **Variant calling** | Samtools · BCFtools | 1.23.1 |
+| **Metagenomics** | Kraken2 · Bracken · Krona | 2.1.3 |
+| **Statistical analysis** | DESeq2 · edgeR · R | R 4.5.2 |
+| **Visualization** | ggplot2 · matplotlib · seaborn | — |
+| **Languages** | Python · R · Bash · C · C++ | Python 3.x |
+| **CI/CD** | GitHub Actions | — |
+| **Documentation** | MkDocs · GitHub Pages | — |
+
+---
+
+## 🧪 Test Data
+
+Test data used during development (publicly available):
+
+| Dataset | Source | Size | Used for |
+|---|---|---|---|
+| GSE110004 / SRR6357070 (subset) | nf-core test datasets | ~4 MB | RNA-seq test |
+| GRCh38 chr22 | Ensembl release 109 | ~11 MB | Reference genome |
+| GRCh38 chr22 GTF | Ensembl release 109 | ~52 MB | Gene annotation |
+
+```bash
+# Download test data (automated)
+bash scripts/download_test_data.sh
+```
+
+---
+
+## ⚙️ Configuration
+
+OmicsFlow supports multiple execution profiles defined in `nextflow.config`:
+
+```groovy
+profiles {
+    docker {
+        docker.enabled   = true
+        process.executor = 'local'
+    }
+    cluster {
+        process.executor    = 'slurm'
+        singularity.enabled = true
+        process.queue       = 'normal'
+    }
+    cloud {
+        process.executor = 'awsbatch'
+        aws.region       = 'ca-central-1'
+    }
+    test {
+        params.input  = "${projectDir}/data/test/samplesheet.csv"
+        params.outdir = 'results_test'
+        docker.enabled = true
+    }
+}
+```
+
+Run with a specific profile:
+```bash
+nextflow run workflows/rnaseq.nf -profile cluster --input samplesheet.csv
+```
+
+---
+
+## 📈 Results & Outputs
+
+Every run generates a timestamped output directory:
+
+```
+results/
+├── qc/
+│   ├── fastqc/             # Per-sample FastQC reports (HTML)
+│   └── multiqc_report.html # Aggregated QC report
+├── trimmed/
+│   └── logs/               # Trim Galore trimming reports
+├── aligned/
+│   ├── sample.Aligned.sortedByCoord.out.bam
+│   └── sample.Log.final.out  # Mapping statistics
+├── counts/
+│   └── salmon/             # Transcript-level quantification
+│       └── quant.sf
+├── deseq2/
+│   ├── deseq2_results.csv  # DE genes table
+│   ├── volcano_plot.pdf    # Volcano plot
+│   ├── heatmap_top50.pdf   # Top 50 DE genes heatmap
+│   └── pca_plot.pdf        # PCA plot
+└── pipeline_info/
+    ├── execution_report.html  # Nextflow execution report
+    └── execution_timeline.html
+```
+
+---
+
+## 🔗 Link to Research
+
+This pipeline was developed in conjunction with research in AI-based medical imaging and bioinformatics:
+
+- **MalariaScan** — AI detection of malaria via blood microscopy. Prix Coup de cœur Jean-Marc Léger, UdeM 2025.
+- **HAtt-CNN** — Adaptive visual attention supervision with heuristic masks for CNN interpretability. *(Under review 2026)*
+- **EpitopeNet** — Backpropagation-free prototype learning inspired by B-cell dynamics for mammography classification. 76.03% accuracy on MiniDDSM. *(Under review 2026)*
+
+> The `analysis/` module is extensible — ML models from the above projects can be integrated as additional pipeline steps.
+
+---
+
+## 📚 Documentation
+
+Full documentation: **[sory-millimono.github.io/OmicsFlow](https://sory-millimono.github.io/OmicsFlow)**
+
+- [Installation guide](docs/installation.md)
+- [Usage & parameters](docs/usage.md)
+- [Output description](docs/outputs.md)
+- [Adding new modules](docs/contributing.md)
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Please open a pull request.
+
+```bash
+git clone https://github.com/sory-millimono/OmicsFlow.git
+cd OmicsFlow
+git checkout -b feature/my-new-module
+```
+
+---
+
+## 📄 Citation
+
+```
+Millimono, S. (2026). OmicsFlow: A modular NGS pipeline for multi-omics analysis.
+GitHub. https://github.com/sory-millimono/OmicsFlow
+```
+
+---
+
+## 👤 Author
+
+**Sory Millimono**  
+PhD Candidate in AI · Bioinformatician  
+Université de Montréal & Mohammed V University – ENSIAS
+
+- 📧 millimono64.sm@gmail.com
+- 🔗 [LinkedIn](https://linkedin.com/in/sory-millimono-ai-searcher-820314162)
+- 🎓 [Google Scholar](https://scholar.google.com/citations?user=5M-zcxYAAAAJ) — h-index 1 · 24 citations
+- 🔬 [ORCID: 0009-0005-1960-9136](https://orcid.org/0009-0005-1960-9136)
+
+---
+
+## 📜 License
+
+MIT License — see [LICENSE](LICENSE) for details.
