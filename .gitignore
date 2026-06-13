@@ -22,3 +22,4 @@ data/test/ctrl_rep1_R2_fastqc.html
 data/test/*.json 
 data/test/*.txt 
 OmicsFlow_README.pdf 
+generate_figures.py 

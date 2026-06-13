@@ -23,6 +23,22 @@ All workflows are fully containerized via Docker and can run locally, on HPC clu
 
 ---
 
+## 📸 Pipeline Results
+
+### Pipeline Architecture
+![Pipeline Architecture](docs/images/pipeline_architecture.png)
+
+### Differential Expression — Volcano Plot
+![Volcano Plot](docs/images/volcano_plot.png)
+
+### Top 50 DE Genes — Heatmap
+![Heatmap](docs/images/heatmap_top50.png)
+
+### Sample Clustering — PCA
+![PCA Plot](docs/images/pca_plot.png)
+
+---
+
 ## 📦 What you need before starting
 
 OmicsFlow is flexible — you can use the full pipeline or individual tools depending on your needs.
@@ -413,7 +429,7 @@ This pipeline was developed in conjunction with research in AI-based medical ima
 
 ## 📚 Documentation
 
-Full documentation available at: **[millimono.github.io/OmicsFlow](https://millimono.github.io/OmicsFlow)**
+Full documentation available at: **[millimono.github.io/OmicsFlow](https://millimono.github.io/OmicsFlow)** *(coming soon)*
 
 ---
 
