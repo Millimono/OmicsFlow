@@ -3,7 +3,7 @@
 > **A modular, containerized NGS pipeline for RNA-seq, long-read, and metagenomic analysis**
 
 [![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A522.10-brightgreen)](https://www.nextflow.io/)
-[![Docker](https://img.shields.io/badge/docker-ready-blue)](https://hub.docker.com/r/millimono/omicsflow)
+[![Docker](https://img.shields.io/badge/docker-ready-blue)](https://hub.docker.com/r/smill/omicsflow)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/Millimono/OmicsFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/Millimono/OmicsFlow/actions)
 
@@ -29,20 +29,20 @@ The easiest way to use OmicsFlow — just Docker, no installation needed.
 
 ```bash
 # Pull the image
-docker pull millimono/omicsflow:1.0.0
+docker pull smill/omicsflow:1.0.0
 
 # Step 1 — Quality control (FastQC)
-docker run --rm -v $(pwd)/data:/data millimono/omicsflow:1.0.0 \
+docker run --rm -v $(pwd)/data:/data smill/omicsflow:1.0.0 \
   bash -c "fastqc /data/sample_R1.fastq.gz /data/sample_R2.fastq.gz --outdir /data/qc"
 
 # Step 2 — Adapter trimming (Trim Galore)
-docker run --rm -v $(pwd)/data:/data millimono/omicsflow:1.0.0 \
+docker run --rm -v $(pwd)/data:/data smill/omicsflow:1.0.0 \
   bash -c "trim_galore --paired --cores 4 \
   /data/sample_R1.fastq.gz /data/sample_R2.fastq.gz \
   -o /data/trimmed"
 
 # Step 3 — Alignment (STAR)
-docker run --rm -v $(pwd)/data:/data millimono/omicsflow:1.0.0 \
+docker run --rm -v $(pwd)/data:/data smill/omicsflow:1.0.0 \
   bash -c "STAR --runMode alignReads \
   --genomeDir /data/star_index \
   --readFilesIn /data/trimmed/sample_R1_val_1.fq.gz /data/trimmed/sample_R2_val_2.fq.gz \
@@ -54,7 +54,7 @@ docker run --rm -v $(pwd)/data:/data millimono/omicsflow:1.0.0 \
   --outFilterMatchNminOverLread 0.3"
 
 # Step 4 — Quantification (Salmon)
-docker run --rm -v $(pwd)/data:/data millimono/omicsflow:1.0.0 \
+docker run --rm -v $(pwd)/data:/data smill/omicsflow:1.0.0 \
   bash -c "salmon quant \
   --index /data/salmon_index \
   --libType A \
@@ -65,11 +65,11 @@ docker run --rm -v $(pwd)/data:/data millimono/omicsflow:1.0.0 \
   --validateMappings"
 
 # Step 5 — BAM statistics (Samtools)
-docker run --rm -v $(pwd)/data:/data millimono/omicsflow:1.0.0 \
+docker run --rm -v $(pwd)/data:/data smill/omicsflow:1.0.0 \
   bash -c "samtools flagstat /data/aligned/sample.Aligned.sortedByCoord.out.bam"
 
 # Step 6 — Aggregated QC report (MultiQC)
-docker run --rm -v $(pwd)/data:/data millimono/omicsflow:1.0.0 \
+docker run --rm -v $(pwd)/data:/data smill/omicsflow:1.0.0 \
   bash -c "multiqc /data --outdir /data/multiqc"
 ```
 
