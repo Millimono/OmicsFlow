@@ -351,9 +351,9 @@ Test data used during development (publicly available):
 
 | Dataset | Source | Size | Used for |
 |---|---|---|---|
-| GSE110004 / SRR6357070 (subset) | nf-core test datasets | ~4 MB | RNA-seq test |
-| GRCh38 chr22 | Ensembl release 109 | ~11 MB | Reference genome |
-| GRCh38 chr22 GTF | Ensembl release 109 | ~52 MB | Gene annotation |
+| GSE110004 / SRR6357070-71 (4 samples) | nf-core test datasets | ~8 MB | RNA-seq validation |
+| S. cerevisiae R64-1-1 genome | nf-core test datasets | ~230 KB | Reference genome |
+| S. cerevisiae gene annotation | nf-core test datasets | ~200 KB | Gene annotation |
 
 ---
 
@@ -429,7 +429,7 @@ This pipeline was developed in conjunction with research in AI-based medical ima
 
 ## 📚 Documentation
 
-Full documentation available at: **[millimono.github.io/OmicsFlow](https://millimono.github.io/OmicsFlow)** *(coming soon)*
+Full documentation available at: **[millimono.github.io/OmicsFlow](https://millimono.github.io/OmicsFlow)**
 
 ---
 
