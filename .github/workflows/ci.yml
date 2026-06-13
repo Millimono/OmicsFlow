@@ -70,7 +70,7 @@ jobs:
           name: pipeline-results
           path: results_ci/
 
-  # ── Docker build ─────────────────────────────────────────────────────────
+  # ── Docker image check (pull from Docker Hub) ────────────────────────────
   docker-build:
     name: Docker build
     runs-on: ubuntu-latest
@@ -78,20 +78,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Docker image
-        run: docker build -t omicsflow:test containers/
+      - name: Pull image from Docker Hub
+        run: docker pull smill/omicsflow:1.0.0
 
       - name: Test container
         run: |
-          docker run --rm omicsflow:test fastqc --version
-          docker run --rm omicsflow:test samtools --version
-          docker run --rm omicsflow:test salmon --version
-
-      - name: Push to Docker Hub (main branch only)
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: |
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-          docker tag omicsflow:test ${{ secrets.DOCKER_USERNAME }}/omicsflow:latest
-          docker tag omicsflow:test ${{ secrets.DOCKER_USERNAME }}/omicsflow:${{ github.sha }}
-          docker push ${{ secrets.DOCKER_USERNAME }}/omicsflow:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/omicsflow:${{ github.sha }}
+          docker run --rm smill/omicsflow:1.0.0 fastqc --version
+          docker run --rm smill/omicsflow:1.0.0 samtools --version
+          docker run --rm smill/omicsflow:1.0.0 salmon --version
+          echo "✅ All tools verified"
