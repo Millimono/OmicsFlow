@@ -39,6 +39,23 @@ All workflows are fully containerized via Docker and can run locally, on HPC clu
 
 ---
 
+## 📊 Validation Metrics
+
+Benchmarked on nf-core test dataset (S. cerevisiae, GSE110004, 4 samples × 50,000 reads):
+
+| Metric                                        | Value          |
+|---|---|
+| Input reads per sample                        | 50,000         |
+| Reads passing QC                              | 99.5%          |
+| Adapter contamination (auto-detected & removed)| 40.3%         |
+| Uniquely mapped reads (STAR)                  | 81.8% – 84.6%  |
+| Properly paired reads                         | 100%           |
+| Mismatch rate                                 | 0.9%           |
+| Pipeline execution time (4 samples, 4 CPUs)   | ~8 min         |
+| Docker image size                             | 4.63 GB        |
+
+---
+
 ## 📦 What you need before starting
 
 OmicsFlow is flexible — you can use the full pipeline or individual tools depending on your needs.
