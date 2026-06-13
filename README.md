@@ -23,7 +23,72 @@ All workflows are fully containerized via Docker and can run locally, on HPC clu
 
 ---
 
-## 🐳 Run with Docker only (no Nextflow required)
+## 📦 What you need before starting
+
+Before running OmicsFlow, you need to prepare the following files:
+
+### 1. Your FASTQ files (sequencing data)
+Raw sequencing files from your sequencer or a public database (NCBI SRA, ENA).
+```
+sample1_R1.fastq.gz   # Read 1
+sample1_R2.fastq.gz   # Read 2 (paired-end)
+```
+
+### 2. A reference genome (FASTA)
+For human data — download GRCh38 chromosome 22 for testing, or the full genome for production:
+```bash
+# Test (chr22 only, ~11 MB)
+wget https://ftp.ensembl.org/pub/release-109/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.22.fa.gz
+
+# Full genome (~3 GB)
+wget https://ftp.ensembl.org/pub/release-109/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
+```
+
+### 3. A gene annotation file (GTF)
+```bash
+wget https://ftp.ensembl.org/pub/release-109/gtf/homo_sapiens/Homo_sapiens.GRCh38.109.gtf.gz
+gunzip Homo_sapiens.GRCh38.109.gtf.gz
+```
+
+### 4. A STAR genome index (built once, reused forever)
+```bash
+docker run --rm -v $(pwd):/data smill/omicsflow:1.0.0 \
+  bash -c "mkdir -p /data/star_index && STAR --runMode genomeGenerate \
+  --genomeDir /data/star_index \
+  --genomeFastaFiles /data/genome/GRCh38.fa \
+  --sjdbGTFfile /data/genome/GRCh38.gtf \
+  --runThreadN 8"
+```
+> ⚠️ The index only needs to be built **once** per genome. It can then be reused for all your samples.
+
+### 5. Your samplesheet (CSV)
+List all your samples in a CSV file:
+```csv
+sample,fastq_1,fastq_2,strandedness
+ctrl_rep1,/data/ctrl_rep1_R1.fastq.gz,/data/ctrl_rep1_R2.fastq.gz,reverse
+ctrl_rep2,/data/ctrl_rep2_R1.fastq.gz,/data/ctrl_rep2_R2.fastq.gz,reverse
+treat_rep1,/data/treat_rep1_R1.fastq.gz,/data/treat_rep1_R2.fastq.gz,reverse
+treat_rep2,/data/treat_rep2_R1.fastq.gz,/data/treat_rep2_R2.fastq.gz,reverse
+```
+
+> **Strandedness:** use `reverse` for most Illumina kits (TruSeq), `forward` for some stranded protocols, `unstranded` if unsure.
+
+### What you do NOT need to install
+Thanks to the Docker image, everything else is already included:
+
+| Tool | Without OmicsFlow | With OmicsFlow |
+|---|---|---|
+| FastQC | Manual install | ✅ Included |
+| Trim Galore | Manual install | ✅ Included |
+| STAR | Compile from source | ✅ Included |
+| Salmon | Manual install | ✅ Included |
+| Samtools | Compile from source | ✅ Included |
+| DESeq2 | R + Bioconductor setup | ✅ Included |
+| MultiQC | pip install | ✅ Included |
+
+---
+
+
 
 The easiest way to use OmicsFlow — just Docker, no installation needed.
 
