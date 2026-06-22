@@ -1,5 +1,5 @@
-sample,fastq_1,fastq_2,strandedness
-ctrl_rep1,data/test/reads/ctrl_rep1_R1.fastq.gz,data/test/reads/ctrl_rep1_R2.fastq.gz,reverse
-ctrl_rep2,data/test/reads/ctrl_rep2_R1.fastq.gz,data/test/reads/ctrl_rep2_R2.fastq.gz,reverse
-treat_rep1,data/test/reads/treat_rep1_R1.fastq.gz,data/test/reads/treat_rep1_R2.fastq.gz,reverse
-treat_rep2,data/test/reads/treat_rep2_R1.fastq.gz,data/test/reads/treat_rep2_R2.fastq.gz,reverse
+sample,fastq_1,fastq_2,strandedness,condition
+ctrl_rep1,data/test/reads/ctrl_rep1_R1.fastq.gz,data/test/reads/ctrl_rep1_R2.fastq.gz,reverse,control
+ctrl_rep2,data/test/reads/ctrl_rep2_R1.fastq.gz,data/test/reads/ctrl_rep2_R2.fastq.gz,reverse,control
+treat_rep1,data/test/reads/treat_rep1_R1.fastq.gz,data/test/reads/treat_rep1_R2.fastq.gz,reverse,treatment
+treat_rep2,data/test/reads/treat_rep2_R1.fastq.gz,data/test/reads/treat_rep2_R2.fastq.gz,reverse,treatment

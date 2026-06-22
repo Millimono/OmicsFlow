@@ -13,11 +13,11 @@
             --genome GRCh38 \
             --outdir results/ \
             -profile docker
-
+    
     Input samplesheet format (CSV):
-        sample,fastq_1,fastq_2,strandedness
-        sample1,/path/to/sample1_R1.fastq.gz,/path/to/sample1_R2.fastq.gz,forward
-        sample2,/path/to/sample2_R1.fastq.gz,/path/to/sample2_R2.fastq.gz,reverse
+        sample,fastq_1,fastq_2,strandedness,condition
+        ctrl_rep1,/path/to/ctrl_R1.fastq.gz,/path/to/ctrl_R2.fastq.gz,reverse,control
+        treat_rep1,/path/to/treat_R1.fastq.gz,/path/to/treat_R2.fastq.gz,reverse,treatment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
@@ -48,6 +48,8 @@ params {
 
     // Quantification
     quantifier    = "salmon"   // salmon | featurecounts
+
+    tx2gene       = null    // path to tx2gene.csv
 
     // Differential expression
     skip_deseq2   = false
@@ -169,7 +171,12 @@ workflow {
     // ── 8. Differential expression ───────────────────────────────────────────
     if (!params.skip_deseq2) {
         ch_counts_collected = ch_counts.collect()
-        DESEQ2_ANALYSIS(ch_counts_collected)
+        ch_samplesheet = Channel.value(file(params.input))
+        ch_tx2gene     = params.tx2gene
+            ? Channel.value(file(params.tx2gene))
+            : Channel.value(file("NO_FILE"))
+        DESEQ2_ANALYSIS(ch_counts_collected, ch_samplesheet, ch_tx2gene)
+
     }
 
     // ── 9. MultiQC ───────────────────────────────────────────────────────────
