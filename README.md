@@ -88,6 +88,17 @@ nextflow run Millimono/OmicsFlow \
 
 > **Windows users:** replace `$(pwd)` with `%cd%` in CMD
 
+> **Need to build reference indexes first?** Use the one-command script:
+> ```bash
+> docker run --rm -v $(pwd):/data smill/omicsflow:1.0.0 \
+>   bash /data/scripts/prepare_references.sh \
+>   --genome /data/genome.fa \
+>   --gtf    /data/genes.gtf \
+>   --outdir /data/references/
+> # → builds star_index/ + salmon_index/ + tx2gene.csv automatically
+> ```
+> Then run the pipeline with `--star_index references/star_index --salmon_index references/salmon_index --tx2gene references/tx2gene.csv`
+
 ---
 
 ## 📦 What you need before starting
@@ -341,6 +352,7 @@ OmicsFlow/
 │   ├── plots.py                 # Visualization scripts
 │   └── report.Rmd               # HTML report template
 ├── scripts/
+│   ├── prepare_references.sh    # Build STAR + Salmon index + tx2gene in one command
 │   └── generate_tx2gene.py      # Generate tx2gene.csv from GTF
 ├── containers/
 │   └── Dockerfile               # Reproducible environment
