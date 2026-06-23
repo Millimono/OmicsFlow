@@ -6,7 +6,7 @@
 [![Docker](https://img.shields.io/badge/docker-ready-blue)](https://hub.docker.com/r/smill/omicsflow)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/Millimono/OmicsFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/Millimono/OmicsFlow/actions)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20677900.svg)](https://doi.org/10.5281/zenodo.20677900)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20805475.svg)](https://doi.org/10.5281/zenodo.20805475)
 
 ---
 
@@ -513,7 +513,7 @@ Full documentation: **[millimono.github.io/OmicsFlow](https://millimono.github.i
 ```
 Millimono, S. (2026). OmicsFlow: A modular containerized NGS pipeline
 for reproducible multi-omics analysis (v1.0.2). Zenodo.
-https://doi.org/10.5281/zenodo.20677900
+https://doi.org/10.5281/zenodo.20805475
 ```
 
 ---
